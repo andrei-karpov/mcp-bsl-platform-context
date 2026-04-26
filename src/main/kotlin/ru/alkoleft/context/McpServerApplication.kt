@@ -10,11 +10,24 @@ package ru.alkoleft.context
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
+import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import org.springframework.context.annotation.Bean
+import org.springframework.core.env.Environment
+import ru.alkoleft.context.infrastructure.platform.PlatformContextPathResolver
+import java.util.concurrent.CountDownLatch
 
 @SpringBootApplication
-class McpServerApplication
+class McpServerApplication {
+    @Bean
+    fun stdioKeepAlive(environment: Environment): ApplicationRunner =
+        ApplicationRunner {
+            if (environment.activeProfiles.contains("stdio")) {
+                CountDownLatch(1).await()
+            }
+        }
+}
 
 fun main(args: Array<String>) {
     val parser = ArgParser("mcp-bsl-context")
@@ -23,7 +36,22 @@ fun main(args: Array<String>) {
         ArgType.String,
         shortName = "p",
         fullName = "platform-path",
-        description = "Путь к каталогу платформы 1С",
+        description = "Путь к каталогу платформы 1С или каталогу/файлу shcntx_ru.hbk",
+    )
+    val platformRoot by parser.option(
+        ArgType.String,
+        fullName = "platform-root",
+        description = "Корневой каталог установок 1С. Если не указан, определяется автоматически",
+    )
+    val platformVersion by parser.option(
+        ArgType.String,
+        fullName = "platform-version",
+        description = "Версия платформы 1С. Если не указана, выбирается последняя найденная версия",
+    )
+    val noPlatformCache by parser.option(
+        ArgType.Boolean,
+        fullName = "no-platform-cache",
+        description = "Не копировать shcntx_ru.hbk в локальный cache",
     )
     val verbose by parser.option(
         ArgType.Boolean,
@@ -46,10 +74,14 @@ fun main(args: Array<String>) {
 
     parser.parse(args)
 
-    // Настройка пути к платформе
-    if (!platformPath.isNullOrBlank()) {
-        System.setProperty("platform.context.path", platformPath as String)
-    }
+    val resolvedPlatformContext =
+        PlatformContextPathResolver.resolve(
+            explicitPath = platformPath,
+            explicitRoot = platformRoot,
+            explicitVersion = platformVersion,
+            cacheEnabled = noPlatformCache != true,
+        )
+    System.setProperty("platform.context.path", resolvedPlatformContext.toString())
 
     // Настройка логирования
     if (verbose ?: false) {

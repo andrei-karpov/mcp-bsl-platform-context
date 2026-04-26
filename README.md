@@ -76,17 +76,35 @@ java -Dfile.encoding=UTF-8 -jar mcp-bsl-context-<версия>.jar [опции]
 
 **Опции:**
 
-- `--platform-path`, `-p` - путь к каталогу установки 1С Предприятия
+- `--platform-path`, `-p` - путь к каталогу установки 1С Предприятия, каталогу с `shcntx_ru.hbk` или самому файлу `shcntx_ru.hbk`
+- `--platform-root` - корневой каталог установок 1С. Если не указан, сервер пробует найти платформу автоматически
+- `--platform-version` - версия платформы 1С. Если не указана, выбирается последняя найденная версия
+- `--no-platform-cache` - отключить копирование `shcntx_ru.hbk` в локальный cache
 - `--help`, `-h` - показать справку по использованию
 - `--verbose` - включить отладочное логирование
 - `--mode`, `-m` - режим работы: sse (HTTP Server-Sent Events) или stdio (стандартный ввод/вывод) (по умолчанию stdio)
 - `--port` - порт для SSE сервера (по умолчанию 8080)
 
+Если `--platform-path` не указан, сервер ищет установленные версии платформы в стандартных каталогах Windows, WSL и Linux, выбирает самую новую версию и кэширует файл справки `shcntx_ru.hbk` в пользовательском cache-каталоге. Это ускоряет холодный старт при работе из WSL/Docker/сетевых дисков.
+
+Переменные окружения:
+
+- `PLATFORM_CONTEXT_PATH` - аналог `--platform-path`
+- `BSL_PLATFORM_ROOT` - аналог `--platform-root`
+- `BSL_PLATFORM_VERSION` - аналог `--platform-version`
+- `BSL_PLATFORM_CONTEXT_CACHE` - каталог cache для `shcntx_ru.hbk`
+
 **Примеры:**
 
 ```bash
+# Автообнаружение платформы и STDIO режим (по умолчанию)
+java -jar mcp-bsl-context-0.3.0.jar
+
 # STDIO режим (по умолчанию)
 java -jar mcp-bsl-context-0.3.0.jar --platform-path "/opt/1cv8/x86_64/8.3.25.1257"
+
+# Выбор конкретной версии из корневого каталога установок
+java -jar mcp-bsl-context-0.3.0.jar --platform-root "/opt/1cv8/x86_64" --platform-version "8.3.25.1257"
 
 # SSE режим (HTTP Server-Sent Events)
 java -jar mcp-bsl-context-0.3.0.jar --mode sse --platform-path "/opt/1cv8/x86_64/8.3.25.1257"
@@ -105,7 +123,10 @@ java -jar mcp-bsl-context-0.3.0.jar --help
 
 ```cmd
 # STDIO режим (по умолчанию)
-java -Dfile.encoding=UTF-8 -jar mcp-bsl-context-0.3.0.jar --platform-path "C:\Program Files\1cv8\8.3.27.1606"
+java -Dfile.encoding=UTF-8 -jar mcp-bsl-context-0.3.0.jar
+
+# Явный выбор версии
+java -Dfile.encoding=UTF-8 -jar mcp-bsl-context-0.3.0.jar --platform-version "8.3.27.1606"
 ```
 
 ### Возможности MCP сервера
